@@ -1,0 +1,11 @@
+# Só o proxy reverso de desenvolvimento. A API sobe pelo docker-compose do
+# api-financeiro (porta 8000) e o Next com `npm run dev` (porta 3000).
+services:
+  proxy:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
