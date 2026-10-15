@@ -99,6 +99,14 @@ export interface CategoriaResumo {
   quantidade: number;
 }
 
+export interface DestinoResumo {
+  /** Chave normalizada; filtra GET /transacoes?destino=. */
+  chave: string;
+  nome: string;
+  total_centavos: number;
+  quantidade: number;
+}
+
 export interface ResumoMes {
   mes: string;
   total_despesas_centavos: number;
@@ -106,6 +114,7 @@ export interface ResumoMes {
   saldo_centavos: number;
   fora_do_resumo_centavos: number;
   despesas_por_categoria: CategoriaResumo[];
+  despesas_por_destino: DestinoResumo[];
   quantidade_transacoes: number;
 }
 

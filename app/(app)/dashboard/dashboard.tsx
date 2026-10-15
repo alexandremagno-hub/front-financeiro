@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { GastosPorCategoria } from "@/components/gastos-por-categoria";
+import { GastosPorDestino } from "@/components/gastos-por-destino";
 import { Button, Card, EmptyState, ErrorBox, PageHeader, Select } from "@/components/ui";
 import { api } from "@/lib/api-client";
 import { formatData } from "@/lib/dates";
@@ -26,8 +26,7 @@ export function Dashboard() {
   // Mês da URL (link "Ver gastos de…") ou, por padrão, o mais recente com dados.
   const mesUrl = sp.get("mes");
   const mes = mesUrl && /^\d{4}-\d{2}$/.test(mesUrl) ? mesUrl : meses.data[0];
-  const categoria = sp.get("categoria");
-  return <GastosDoMes key={mes} mes={mes} meses={meses.data} categoriaId={categoria ? Number(categoria) : null} />;
+  return <GastosDoMes key={mes} mes={mes} meses={meses.data} destino={sp.get("destino")} />;
 }
 
 function SemDados() {
@@ -51,7 +50,7 @@ function SemDados() {
   );
 }
 
-function GastosDoMes({ mes, meses, categoriaId }: { mes: string; meses: string[]; categoriaId: number | null }) {
+function GastosDoMes({ mes, meses, destino }: { mes: string; meses: string[]; destino: string | null }) {
   const router = useRouter();
   const pathname = usePathname();
   const [pagina, setPagina] = useState(0);
@@ -76,20 +75,20 @@ function GastosDoMes({ mes, meses, categoriaId }: { mes: string; meses: string[]
         {
           data_inicio: inicio,
           data_fim: fim,
-          categoria_id: categoriaId ?? undefined,
+          destino: destino ?? undefined,
           limit: POR_PAGINA,
           offset: pagina * POR_PAGINA,
         },
         signal,
       ),
-    [mes, categoriaId, pagina],
+    [mes, destino, pagina],
   );
 
-  function navegar(params: { mes?: string; categoria?: number | null }) {
+  function navegar(params: { mes?: string; destino?: string | null }) {
     const novo = new URLSearchParams();
     novo.set("mes", params.mes ?? mes);
-    const cat = "categoria" in params ? params.categoria : categoriaId;
-    if (cat !== null && cat !== undefined) novo.set("categoria", String(cat));
+    const dest = "destino" in params ? params.destino : destino;
+    if (dest !== null && dest !== undefined) novo.set("destino", dest);
     setPagina(0);
     router.replace(`${pathname}?${novo.toString()}`, { scroll: false });
   }
@@ -112,7 +111,7 @@ function GastosDoMes({ mes, meses, categoriaId }: { mes: string; meses: string[]
   const categoriaPorId = new Map(categorias.map((c) => [c.id, c]));
   const contaPorId = new Map((refs.data?.contas ?? []).map((c) => [c.id, c]));
   const r = resumo.data;
-  const nomeFiltro = categoriaId !== null ? categoriaPorId.get(categoriaId)?.nome : null;
+  const nomeFiltro = destino !== null ? r?.despesas_por_destino.find((d) => d.chave === destino)?.nome : null;
 
   return (
     <>
@@ -120,13 +119,13 @@ function GastosDoMes({ mes, meses, categoriaId }: { mes: string; meses: string[]
         title="Gastos do mês"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="secondary" disabled={!anterior} onClick={() => anterior && navegar({ mes: anterior, categoria: null })} aria-label="Mês anterior">
+            <Button variant="secondary" disabled={!anterior} onClick={() => anterior && navegar({ mes: anterior, destino: null })} aria-label="Mês anterior">
               ‹
             </Button>
             <Select
               aria-label="Mês"
               value={mes}
-              onChange={(e) => navegar({ mes: e.target.value, categoria: null })}
+              onChange={(e) => navegar({ mes: e.target.value, destino: null })}
               className="w-48"
             >
               {!meses.includes(mes) && <option value={mes}>{nomeMes(mes)}</option>}
@@ -136,7 +135,7 @@ function GastosDoMes({ mes, meses, categoriaId }: { mes: string; meses: string[]
                 </option>
               ))}
             </Select>
-            <Button variant="secondary" disabled={!proximo} onClick={() => proximo && navegar({ mes: proximo, categoria: null })} aria-label="Próximo mês">
+            <Button variant="secondary" disabled={!proximo} onClick={() => proximo && navegar({ mes: proximo, destino: null })} aria-label="Próximo mês">
               ›
             </Button>
           </div>
@@ -170,22 +169,22 @@ function GastosDoMes({ mes, meses, categoriaId }: { mes: string; meses: string[]
       <Card className="mb-6">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-base font-semibold text-slate-900">Para onde foi o dinheiro</h2>
-          {categoriaId !== null && (
-            <button type="button" onClick={() => navegar({ categoria: null })} className="text-sm font-medium text-emerald-700 hover:underline">
-              Mostrar todas as categorias
+          {destino !== null && (
+            <button type="button" onClick={() => navegar({ destino: null })} className="text-sm font-medium text-emerald-700 hover:underline">
+              Mostrar todos os destinos
             </button>
           )}
         </div>
         {!r ? (
           <EmptyState>Carregando…</EmptyState>
-        ) : r.despesas_por_categoria.length === 0 ? (
+        ) : r.despesas_por_destino.length === 0 ? (
           <EmptyState>Nenhum gasto neste mês.</EmptyState>
         ) : (
-          <GastosPorCategoria
-            dados={r.despesas_por_categoria}
+          <GastosPorDestino
+            dados={r.despesas_por_destino}
             total={r.total_despesas_centavos}
-            selecionada={categoriaId}
-            onSelecionar={(id) => navegar({ categoria: id })}
+            selecionado={destino}
+            onSelecionar={(chave) => navegar({ destino: chave })}
           />
         )}
         {r && r.fora_do_resumo_centavos > 0 && (
