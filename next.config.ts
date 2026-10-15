@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
+// Onde o servidor do Next encontra a API (não é exposto ao navegador).
+const API_URL = process.env.API_URL ?? "http://localhost:8000";
+
 const nextConfig: NextConfig = {
+  // O navegador chama /api/* na mesma origem do front (cookie de refresh HttpOnly,
+  // SameSite=Strict, sem CORS) e o Next repassa para a API sem o prefixo /api:
+  // /api/auth/login -> http://localhost:8000/auth/login.
+  async rewrites() {
+    return [{ source: "/api/:path*", destination: `${API_URL}/:path*` }];
+  },
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {

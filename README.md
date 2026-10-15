@@ -4,35 +4,28 @@ Frontend Next.js (App Router, TypeScript, Tailwind) da API de controle financeir
 (`../api-financeiro`). A pessoa cria a conta, envia o extrato CSV que baixou do banco e vê os gastos
 de cada mês por categoria.
 
-Front e API rodam **na mesma origem**, atrás de um proxy reverso:
+Front e API rodam **na mesma origem**: o navegador só fala com o Next, que repassa `/api/*` para a
+API removendo o prefixo (`rewrites` em `next.config.ts`):
 
 ```
-https://seudominio.com/        →  Next.js
-https://seudominio.com/api/*   →  FastAPI (o proxy remove o prefixo /api)
+http://localhost:3000/        →  Next.js
+http://localhost:3000/api/*   →  FastAPI em http://localhost:8000 (sem o prefixo /api)
 ```
 
 ## Como rodar localmente
 
-São três processos: a API, o Next e um nginx que faz o papel do proxy de produção.
-
 ```bash
-# 1. API (no diretório api-financeiro). Use --build depois de atualizar o código da API.
+# 1. API, MySQL e Redis (no diretório api-financeiro). Use --build depois de atualizar o código da API.
 cd ../api-financeiro
 docker compose up --build -d
 
 # 2. Front, com hot reload
 cd ../front-financeiro
 npm install
-npm run dev               # Next em http://localhost:3000
-
-# 3. Proxy reverso (em outro terminal, também em front-financeiro)
-docker compose up -d      # nginx em http://localhost:8080
+npm run dev               # http://localhost:3000
 ```
 
-Abra **http://localhost:8080**, não a porta 3000. Na 3000 a página abre, mas as chamadas para
-`/api/...` caem no próprio Next (404), porque quem encaminha `/api` para a API é o proxy. Isso é
-proposital: o ambiente local reproduz a produção (mesma origem, cookie `SameSite=Strict`, mesmos
-caminhos), em vez de esconder diferenças que só apareceriam no deploy.
+Se a API estiver em outro endereço, defina `API_URL` no `.env` do front (veja `.env.example`).
 
 No `.env` da API, para desenvolvimento em `http://localhost`:
 
@@ -41,7 +34,7 @@ COOKIE_SECURE=false            # sem HTTPS local; em produção, true
 REFRESH_COOKIE_PATH=/api/auth  # é o padrão; o caminho que o navegador vê
 ```
 
-Para ter um usuário, use a tela **Criar conta** (http://localhost:8080/cadastro).
+Para ter um usuário, use a tela **Criar conta** (http://localhost:3000/cadastro).
 
 ### Scripts
 
@@ -52,8 +45,8 @@ Para ter um usuário, use a tela **Criar conta** (http://localhost:8080/cadastro
 | `npm test` | testes unitários (Vitest): `api-client` (inclusive upload) e conversão de dinheiro |
 | `npm run lint` | ESLint |
 
-`NEXT_PUBLIC_API_BASE` (padrão `/api`, veja `.env.example`) só precisa mudar se o proxy publicar a
-API em outro caminho.
+`NEXT_PUBLIC_API_BASE` (padrão `/api`, veja `.env.example`) só precisa mudar se a API for publicada
+em outro caminho.
 
 ## Estrutura
 
@@ -68,7 +61,6 @@ contexts/auth-context.tsx   sessão: access token em memória + refresh silencio
 lib/api-client.ts           wrapper único de fetch (token, credentials, refresh em 401, upload)
 lib/money.ts                texto ⇄ centavos inteiros, sem float
 components/                 UI, gráfico de gastos por categoria, RequireAuth
-proxy/nginx.conf            proxy reverso de desenvolvimento
 tests/                      Vitest
 ```
 
@@ -111,7 +103,8 @@ Esses casos estão cobertos em `tests/api-client.test.ts`.
 ### Sem BFF: o browser fala direto com a API
 
 Não há API routes, Route Handlers nem Server Actions do Next fazendo proxy. O navegador chama
-`/api/*`, e o proxy reverso entrega direto ao FastAPI. O Next só serve a interface.
+`/api/*`, que chega ao FastAPI sem passar por código nosso: em desenvolvimento pelo `rewrites` do
+Next, em produção pelo proxy reverso. O Next só serve a interface.
 
 **Por quê:**
 - **Um salto a menos:** cada requisição vai do navegador ao proxy e à API, sem passar por um
@@ -176,5 +169,6 @@ dados privados ou a remoção do token do browser passarem a ser requisitos, o c
 ## Produção
 
 - Rode `npm run build && npm start` (ou um container Node) atrás do proxy, com HTTPS.
-- No proxy: `/api/` → API **removendo o prefixo**, `/` → Next. Use `proxy/nginx.conf` como base.
+- No proxy: `/api/` → API **removendo o prefixo**, `/` → Next (no nginx, `proxy_pass http://api:8000/;`
+  com a barra final). Sem proxy na frente, o `rewrites` do Next faz esse papel: defina `API_URL`.
 - Na API: `COOKIE_SECURE=true`, `REFRESH_COOKIE_PATH=/api/auth`, `ENVIRONMENT=production`.
