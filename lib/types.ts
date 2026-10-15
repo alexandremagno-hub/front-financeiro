@@ -100,7 +100,7 @@ export interface CategoriaResumo {
 }
 
 export interface DestinoResumo {
-  /** Chave normalizada; filtra GET /transacoes?destino=. */
+  /** Chave normalizada; filtra GET /transacoes?destino= (com tipo=receita nas origens). */
   chave: string;
   nome: string;
   total_centavos: number;
@@ -115,6 +115,8 @@ export interface ResumoMes {
   fora_do_resumo_centavos: number;
   despesas_por_categoria: CategoriaResumo[];
   despesas_por_destino: DestinoResumo[];
+  /** Quem enviou o dinheiro (pessoa, empresa, banco), maior primeiro. */
+  receitas_por_origem: DestinoResumo[];
   quantidade_transacoes: number;
 }
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { GastosPorDestino } from "@/components/gastos-por-destino";
+import { ResumoPorNome } from "@/components/resumo-por-nome";
 import { Button, Card, EmptyState, ErrorBox, PageHeader, Select } from "@/components/ui";
 import { api } from "@/lib/api-client";
 import { formatData } from "@/lib/dates";
@@ -26,7 +26,7 @@ export function Dashboard() {
   // Mês da URL (link "Ver gastos de…") ou, por padrão, o mais recente com dados.
   const mesUrl = sp.get("mes");
   const mes = mesUrl && /^\d{4}-\d{2}$/.test(mesUrl) ? mesUrl : meses.data[0];
-  return <GastosDoMes key={mes} mes={mes} meses={meses.data} destino={sp.get("destino")} />;
+  return <GastosDoMes key={mes} mes={mes} meses={meses.data} destino={sp.get("destino")} origem={sp.get("origem")} />;
 }
 
 function SemDados() {
@@ -50,7 +50,17 @@ function SemDados() {
   );
 }
 
-function GastosDoMes({ mes, meses, destino }: { mes: string; meses: string[]; destino: string | null }) {
+function GastosDoMes({
+  mes,
+  meses,
+  destino,
+  origem,
+}: {
+  mes: string;
+  meses: string[];
+  destino: string | null;
+  origem: string | null;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [pagina, setPagina] = useState(0);
@@ -75,20 +85,26 @@ function GastosDoMes({ mes, meses, destino }: { mes: string; meses: string[]; de
         {
           data_inicio: inicio,
           data_fim: fim,
-          destino: destino ?? undefined,
+          // Origem e destino usam a mesma chave; a origem só olha as entradas.
+          destino: destino ?? origem ?? undefined,
+          tipo: origem !== null ? "receita" : undefined,
           limit: POR_PAGINA,
           offset: pagina * POR_PAGINA,
         },
         signal,
       ),
-    [mes, destino, pagina],
+    [mes, destino, origem, pagina],
   );
 
-  function navegar(params: { mes?: string; destino?: string | null }) {
+  // Um filtro por vez: escolher um destino limpa a origem e vice-versa.
+  function navegar(params: { mes?: string; destino?: string | null; origem?: string | null }) {
     const novo = new URLSearchParams();
     novo.set("mes", params.mes ?? mes);
-    const dest = "destino" in params ? params.destino : destino;
+    const mudouFiltro = "destino" in params || "origem" in params;
+    const dest = mudouFiltro ? params.destino : destino;
+    const orig = mudouFiltro ? params.origem : origem;
     if (dest !== null && dest !== undefined) novo.set("destino", dest);
+    else if (orig !== null && orig !== undefined) novo.set("origem", orig);
     setPagina(0);
     router.replace(`${pathname}?${novo.toString()}`, { scroll: false });
   }
@@ -111,7 +127,12 @@ function GastosDoMes({ mes, meses, destino }: { mes: string; meses: string[]; de
   const categoriaPorId = new Map(categorias.map((c) => [c.id, c]));
   const contaPorId = new Map((refs.data?.contas ?? []).map((c) => [c.id, c]));
   const r = resumo.data;
-  const nomeFiltro = destino !== null ? r?.despesas_por_destino.find((d) => d.chave === destino)?.nome : null;
+  const nomeFiltro =
+    destino !== null
+      ? r?.despesas_por_destino.find((d) => d.chave === destino)?.nome
+      : origem !== null
+        ? r?.receitas_por_origem.find((o) => o.chave === origem)?.nome
+        : null;
 
   return (
     <>
@@ -119,13 +140,13 @@ function GastosDoMes({ mes, meses, destino }: { mes: string; meses: string[]; de
         title="Gastos do mês"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="secondary" disabled={!anterior} onClick={() => anterior && navegar({ mes: anterior, destino: null })} aria-label="Mês anterior">
+            <Button variant="secondary" disabled={!anterior} onClick={() => anterior && navegar({ mes: anterior, destino: null, origem: null })} aria-label="Mês anterior">
               ‹
             </Button>
             <Select
               aria-label="Mês"
               value={mes}
-              onChange={(e) => navegar({ mes: e.target.value, destino: null })}
+              onChange={(e) => navegar({ mes: e.target.value, destino: null, origem: null })}
               className="w-48"
             >
               {!meses.includes(mes) && <option value={mes}>{nomeMes(mes)}</option>}
@@ -135,7 +156,7 @@ function GastosDoMes({ mes, meses, destino }: { mes: string; meses: string[]; de
                 </option>
               ))}
             </Select>
-            <Button variant="secondary" disabled={!proximo} onClick={() => proximo && navegar({ mes: proximo, destino: null })} aria-label="Próximo mês">
+            <Button variant="secondary" disabled={!proximo} onClick={() => proximo && navegar({ mes: proximo, destino: null, origem: null })} aria-label="Próximo mês">
               ›
             </Button>
           </div>
@@ -168,7 +189,7 @@ function GastosDoMes({ mes, meses, destino }: { mes: string; meses: string[]; de
 
       <Card className="mb-6">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-base font-semibold text-slate-900">Para onde foi o dinheiro</h2>
+          <h2 className="text-base font-semibold text-slate-900">Saídas</h2>
           {destino !== null && (
             <button type="button" onClick={() => navegar({ destino: null })} className="text-sm font-medium text-emerald-700 hover:underline">
               Mostrar todos os destinos
@@ -180,7 +201,8 @@ function GastosDoMes({ mes, meses, destino }: { mes: string; meses: string[]; de
         ) : r.despesas_por_destino.length === 0 ? (
           <EmptyState>Nenhum gasto neste mês.</EmptyState>
         ) : (
-          <GastosPorDestino
+          <ResumoPorNome
+            tipo="despesa"
             dados={r.despesas_por_destino}
             total={r.total_despesas_centavos}
             selecionado={destino}
@@ -192,6 +214,30 @@ function GastosDoMes({ mes, meses, destino }: { mes: string; meses: string[]; de
             {formatCentavos(r.fora_do_resumo_centavos)} em pagamentos de fatura não entram nos totais: os gastos do cartão
             já aparecem um a um quando você importa a fatura.
           </p>
+        )}
+      </Card>
+
+      <Card className="mb-6">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-base font-semibold text-slate-900">Entradas</h2>
+          {origem !== null && (
+            <button type="button" onClick={() => navegar({ origem: null })} className="text-sm font-medium text-emerald-700 hover:underline">
+              Mostrar todas as origens
+            </button>
+          )}
+        </div>
+        {!r ? (
+          <EmptyState>Carregando…</EmptyState>
+        ) : r.receitas_por_origem.length === 0 ? (
+          <EmptyState>Nenhuma entrada neste mês.</EmptyState>
+        ) : (
+          <ResumoPorNome
+            tipo="receita"
+            dados={r.receitas_por_origem}
+            total={r.total_receitas_centavos}
+            selecionado={origem}
+            onSelecionar={(chave) => navegar({ origem: chave })}
+          />
         )}
       </Card>
 

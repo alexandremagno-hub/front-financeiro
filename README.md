@@ -60,7 +60,7 @@ app/
 contexts/auth-context.tsx   sessão: access token em memória + refresh silencioso no mount
 lib/api-client.ts           wrapper único de fetch (token, credentials, refresh em 401, upload)
 lib/money.ts                texto ⇄ centavos inteiros, sem float
-components/                 UI, gráfico de gastos por categoria, RequireAuth
+components/                 UI, gráfico/tabela por destino e por origem, RequireAuth
 tests/                      Vitest
 ```
 
@@ -147,6 +147,9 @@ dados privados ou a remoção do token do browser passarem a ser requisitos, o c
    para ver o % e a quantidade; clique para filtrar a lista); e os lançamentos, cada um com a
    categoria editável. Trocar a categoria atualiza o gráfico. Pagamentos de fatura não entram nos
    totais e aparecem numa nota abaixo do gráfico.
+   Abaixo dele, **Entradas** mostra quem mais enviou dinheiro no mês (pessoa,
+   empresa, banco), no mesmo gráfico. Os dois blocos trocam entre **Gráfico** e **Tabela**
+   (quantidade, % e valor); clicar filtra os lançamentos para as entradas daquela origem (`?origem=<chave>`).
 
 ### Outras escolhas
 

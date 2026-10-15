@@ -10,30 +10,40 @@ interface Props {
   total: number;
   selecionado: string | null;
   onSelecionar: (chave: string | null) => void;
+  textos: Textos;
 }
 
-// Muitos destinos pequenos (um Pix aqui, outro ali) viram cauda longa: mostra os
+export interface Textos {
+  lista: string;
+  /** Completa o percentual: "12% dos gastos". */
+  fracao: string;
+  mostrarTodos: (n: number) => string;
+  mostrarMaiores: string;
+}
+
+// Muitos nomes pequenos (um Pix aqui, outro ali) viram cauda longa: mostra os
 // maiores e deixa o resto atrás de um botão.
 const VISIVEIS = 10;
 
 /**
- * Barras horizontais, uma por destino (loja, app, pessoa), do maior para o menor gasto.
+ * Barras horizontais, uma por nome (destino de um gasto ou origem de uma entrada:
+ * loja, app, pessoa), do maior para o menor valor.
  * Uma série só (magnitude): um único tom, sem legenda; o título da seção nomeia o
  * que está plotado. Valor no fim de cada barra; percentual e quantidade no tooltip
- * (hover ou foco do teclado). Clicar filtra a lista abaixo; o destino escolhido
+ * (hover ou foco do teclado). Clicar filtra a lista abaixo; o nome escolhido
  * fica em destaque e os demais em cinza.
  */
-export function GastosPorDestino({ dados, total, selecionado, onSelecionar }: Props) {
+export function BarrasPorNome({ dados, total, selecionado, onSelecionar, textos }: Props) {
   const [ativa, setAtiva] = useState<number | null>(null);
   const [todos, setTodos] = useState(false);
   const max = Math.max(...dados.map((d) => d.total_centavos), 1);
-  // O destino filtrado continua visível mesmo fora dos maiores.
+  // O nome filtrado continua visível mesmo fora dos maiores.
   const corte = Math.max(VISIVEIS, dados.findIndex((d) => d.chave === selecionado) + 1);
   const visiveis = todos ? dados : dados.slice(0, corte);
 
   return (
     <>
-      <ul className="space-y-1" aria-label="Gastos por destino">
+      <ul className="space-y-1" aria-label={textos.lista}>
         {visiveis.map((d, i) => {
           const pct = total > 0 ? (d.total_centavos / total) * 100 : 0;
           const largura = Math.max((d.total_centavos / max) * 100, 0.5);
@@ -50,7 +60,7 @@ export function GastosPorDestino({ dados, total, selecionado, onSelecionar }: Pr
                 onFocus={() => setAtiva(i)}
                 onBlur={() => setAtiva((a) => (a === i ? null : a))}
                 aria-pressed={selecionado === id}
-                aria-label={`${d.nome}: ${formatCentavos(d.total_centavos)}, ${pct.toFixed(1).replace(".", ",")}% dos gastos, ${d.quantidade} lançamentos`}
+                aria-label={`${d.nome}: ${formatCentavos(d.total_centavos)}, ${pct.toFixed(1).replace(".", ",")}% ${textos.fracao}, ${d.quantidade} lançamentos`}
                 className="grid w-full grid-cols-[minmax(6rem,11rem)_1fr] items-center gap-3 rounded-md px-2 py-1.5 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-emerald-600"
               >
                 <span className={`truncate text-sm ${destacada ? "text-slate-800" : "text-slate-400"}`}>{d.nome}</span>
@@ -67,7 +77,7 @@ export function GastosPorDestino({ dados, total, selecionado, onSelecionar }: Pr
                 </span>
               </button>
               {mostrarTooltip && (
-                // Uma linha, dentro da própria linha do destino (à direita): não cobre
+                // Uma linha, dentro da própria linha do nome (à direita): não cobre
                 // as barras vizinhas; no máximo cobre o valor desta, que ele repete.
                 <div
                   role="tooltip"
@@ -76,7 +86,7 @@ export function GastosPorDestino({ dados, total, selecionado, onSelecionar }: Pr
                   <span className="inline-block h-0.5 w-3 rounded bg-emerald-600" aria-hidden />
                   <span className="text-sm font-semibold text-slate-900">{formatCentavos(d.total_centavos)}</span>
                   <span className="text-slate-500">
-                    {pct.toFixed(1).replace(".", ",")}% dos gastos · {d.quantidade} {d.quantidade === 1 ? "lançamento" : "lançamentos"}
+                    {pct.toFixed(1).replace(".", ",")}% {textos.fracao} · {d.quantidade} {d.quantidade === 1 ? "lançamento" : "lançamentos"}
                   </span>
                 </div>
               )}
@@ -90,7 +100,7 @@ export function GastosPorDestino({ dados, total, selecionado, onSelecionar }: Pr
           onClick={() => setTodos((t) => !t)}
           className="mt-2 px-2 text-sm font-medium text-emerald-700 hover:underline"
         >
-          {todos ? "Mostrar só os maiores" : `Mostrar todos os ${dados.length} destinos`}
+          {todos ? textos.mostrarMaiores : textos.mostrarTodos(dados.length)}
         </button>
       )}
     </>
