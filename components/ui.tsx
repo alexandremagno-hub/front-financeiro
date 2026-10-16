@@ -38,8 +38,17 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
   return <input {...props} className={cx(fieldClass, className)} />;
 }
 
-export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={cx(fieldClass, "pr-8", className)} />;
+// Seta própria: a nativa fica colada na borda e, em campos estreitos, em cima do texto.
+const SETA_SELECT = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z'/%3E%3C/svg%3E")`;
+
+export function Select({ className, style, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      {...props}
+      style={{ backgroundImage: SETA_SELECT, ...style }}
+      className={cx(fieldClass, "appearance-none bg-size-[1rem] bg-position-[right_0.625rem_center] bg-no-repeat pr-9", className)}
+    />
+  );
 }
 
 export function Field({ label, htmlFor, children, hint }: { label: string; htmlFor: string; children: ReactNode; hint?: string }) {

@@ -50,7 +50,7 @@ export function LoginForm() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <h1 className="mb-1 text-center text-2xl font-semibold tracking-tight">Financeiro</h1>
+        <h1 className="mb-1 text-center text-2xl font-semibold tracking-tight">Finanças</h1>
         <p className="mb-6 text-center text-sm text-slate-500">Entre com sua conta</p>
         <Card>
           <form onSubmit={onSubmit} className="space-y-4">

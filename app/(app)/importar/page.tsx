@@ -116,7 +116,8 @@ export default function ImportarPage() {
   }
 
   return (
-    <>
+    // O painel usa a largura toda; a importação é um formulário e fica estreita.
+    <div className="mx-auto max-w-6xl">
       <PageHeader title="Importar extrato" />
 
       {/* A área de envio fica sempre visível: o Next preserva o estado da página ao
@@ -293,7 +294,7 @@ export default function ImportarPage() {
           </ul>
         )}
       </Card>
-    </>
+    </div>
   );
 }
 

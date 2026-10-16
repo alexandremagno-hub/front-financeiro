@@ -138,7 +138,7 @@ function GastosDoMes({
   return (
     <>
       <PageHeader
-        title="Gastos do mês"
+        title={`Gastos do mês de ${nomeMes(mes).split(" ")[0].toLowerCase()}`}
         actions={
           <div className="flex items-center gap-2">
             <Button variant="secondary" disabled={!anterior} onClick={() => anterior && navegar({ mes: anterior, destino: null, origem: null })} aria-label="Mês anterior">
@@ -188,59 +188,62 @@ function GastosDoMes({
         </Card>
       </div>
 
-      <Card className="mb-6">
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-base font-semibold text-slate-900">Entradas</h2>
-          {origem !== null && (
-            <button type="button" onClick={() => navegar({ origem: null })} className="text-sm font-medium text-emerald-700 hover:underline">
-              Mostrar todas as origens
-            </button>
+      {/* Lado a lado em telas largas; empilhados no celular. */}
+      <div className="mb-6 grid items-start gap-6 lg:grid-cols-2">
+        <Card>
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-base font-semibold text-slate-900">Entradas</h2>
+            {origem !== null && (
+              <button type="button" onClick={() => navegar({ origem: null })} className="text-sm font-medium text-emerald-700 hover:underline">
+                Mostrar todas as origens
+              </button>
+            )}
+          </div>
+          {!r ? (
+            <EmptyState>Carregando…</EmptyState>
+          ) : r.receitas_por_origem.length === 0 ? (
+            <EmptyState>Nenhuma entrada neste mês.</EmptyState>
+          ) : (
+            <ResumoPorNome
+              tipo="receita"
+              dados={r.receitas_por_origem}
+              total={r.total_receitas_centavos}
+              selecionado={origem}
+              onSelecionar={(chave) => navegar({ origem: chave })}
+            />
           )}
-        </div>
-        {!r ? (
-          <EmptyState>Carregando…</EmptyState>
-        ) : r.receitas_por_origem.length === 0 ? (
-          <EmptyState>Nenhuma entrada neste mês.</EmptyState>
-        ) : (
-          <ResumoPorNome
-            tipo="receita"
-            dados={r.receitas_por_origem}
-            total={r.total_receitas_centavos}
-            selecionado={origem}
-            onSelecionar={(chave) => navegar({ origem: chave })}
-          />
-        )}
-      </Card>
+        </Card>
 
-      <Card className="mb-6">
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-base font-semibold text-slate-900">Saídas</h2>
-          {destino !== null && (
-            <button type="button" onClick={() => navegar({ destino: null })} className="text-sm font-medium text-emerald-700 hover:underline">
-              Mostrar todos os destinos
-            </button>
+        <Card>
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-base font-semibold text-slate-900">Saídas</h2>
+            {destino !== null && (
+              <button type="button" onClick={() => navegar({ destino: null })} className="text-sm font-medium text-emerald-700 hover:underline">
+                Mostrar todos os destinos
+              </button>
+            )}
+          </div>
+          {!r ? (
+            <EmptyState>Carregando…</EmptyState>
+          ) : r.despesas_por_destino.length === 0 ? (
+            <EmptyState>Nenhum gasto neste mês.</EmptyState>
+          ) : (
+            <ResumoPorNome
+              tipo="despesa"
+              dados={r.despesas_por_destino}
+              total={r.total_despesas_centavos}
+              selecionado={destino}
+              onSelecionar={(chave) => navegar({ destino: chave })}
+            />
           )}
-        </div>
-        {!r ? (
-          <EmptyState>Carregando…</EmptyState>
-        ) : r.despesas_por_destino.length === 0 ? (
-          <EmptyState>Nenhum gasto neste mês.</EmptyState>
-        ) : (
-          <ResumoPorNome
-            tipo="despesa"
-            dados={r.despesas_por_destino}
-            total={r.total_despesas_centavos}
-            selecionado={destino}
-            onSelecionar={(chave) => navegar({ destino: chave })}
-          />
-        )}
-        {r && r.fora_do_resumo_centavos > 0 && (
-          <p className="mt-4 text-xs text-slate-500">
-            {formatCentavos(r.fora_do_resumo_centavos)} em pagamentos de fatura não entram nos totais: os gastos do cartão
-            já aparecem um a um quando você importa a fatura.
-          </p>
-        )}
-      </Card>
+          {r && r.fora_do_resumo_centavos > 0 && (
+            <p className="mt-4 text-xs text-slate-500">
+              {formatCentavos(r.fora_do_resumo_centavos)} em pagamentos de fatura não entram nos totais: os gastos do cartão
+              já aparecem um a um quando você importa a fatura.
+            </p>
+          )}
+        </Card>
+      </div>
 
       <Card className="overflow-hidden p-0">
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-200 px-4 py-3">
@@ -315,7 +318,7 @@ function GastosDoMes({
                     setPorPagina(Number(e.target.value));
                     setPagina(0);
                   }}
-                  className="w-20 py-1.5"
+                  className="w-20 py-1.5 tabular-nums"
                 >
                   {OPCOES_POR_PAGINA.map((n) => (
                     <option key={n} value={n}>
@@ -329,11 +332,11 @@ function GastosDoMes({
               </span>
             </div>
             <div className="flex gap-2">
-              <Button variant="secondary" disabled={pagina === 0} onClick={() => setPagina((p) => p - 1)}>
-                Anterior
+              <Button variant="secondary" disabled={pagina === 0} onClick={() => setPagina((p) => p - 1)} aria-label="Página anterior">
+                ‹
               </Button>
-              <Button variant="secondary" disabled={(pagina + 1) * porPagina >= lista.data.total} onClick={() => setPagina((p) => p + 1)}>
-                Próxima
+              <Button variant="secondary" disabled={(pagina + 1) * porPagina >= lista.data.total} onClick={() => setPagina((p) => p + 1)} aria-label="Próxima página">
+                ›
               </Button>
             </div>
           </div>

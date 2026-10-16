@@ -23,18 +23,18 @@ export function AppNav() {
 
   return (
     <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4">
-        <Link href="/dashboard" className="font-semibold tracking-tight text-emerald-700">
-          Financeiro
+      <div className="flex h-20 items-center gap-8 px-4 sm:px-6 lg:px-8">
+        <Link href="/dashboard" className="text-2xl font-semibold tracking-tight text-emerald-700">
+          Finanças
         </Link>
-        <nav className="flex gap-1">
+        <nav className="flex gap-2">
           {LINKS.map((l) => {
             const ativo = pathname === l.href || pathname.startsWith(`${l.href}/`);
             return (
               <Link
                 key={l.href}
                 href={l.href}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+                className={`rounded-lg px-4 py-2 text-base font-medium ${
                   ativo ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
@@ -44,8 +44,8 @@ export function AppNav() {
           })}
         </nav>
         <div className="ml-auto flex items-center gap-3">
-          <span className="hidden text-sm text-slate-500 sm:inline">{user?.nome}</span>
-          <Button variant="ghost" onClick={sair}>
+          <span className="hidden text-base text-slate-500 sm:inline">{user?.nome}</span>
+          <Button variant="ghost" onClick={sair} className="text-base!">
             Sair
           </Button>
         </div>
