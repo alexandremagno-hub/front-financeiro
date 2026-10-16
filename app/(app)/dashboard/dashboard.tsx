@@ -13,7 +13,7 @@ import { formatCentavos } from "@/lib/money";
 import type { Categoria, Conta, ResumoMes, TransacaoPage } from "@/lib/types";
 import { errorMessage, useAsync } from "@/lib/use-async";
 
-const POR_PAGINA = 100;
+const OPCOES_POR_PAGINA = [10, 20, 50, 100];
 
 export function Dashboard() {
   const sp = useSearchParams();
@@ -64,6 +64,7 @@ function GastosDoMes({
   const router = useRouter();
   const pathname = usePathname();
   const [pagina, setPagina] = useState(0);
+  const [porPagina, setPorPagina] = useState(OPCOES_POR_PAGINA[0]);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   const { inicio, fim } = intervaloMes(mes);
 
@@ -88,12 +89,12 @@ function GastosDoMes({
           // Origem e destino usam a mesma chave; a origem só olha as entradas.
           destino: destino ?? origem ?? undefined,
           tipo: origem !== null ? "receita" : undefined,
-          limit: POR_PAGINA,
-          offset: pagina * POR_PAGINA,
+          limit: porPagina,
+          offset: pagina * porPagina,
         },
         signal,
       ),
-    [mes, destino, origem, pagina],
+    [mes, destino, origem, pagina, porPagina],
   );
 
   // Um filtro por vez: escolher um destino limpa a origem e vice-versa.
@@ -189,6 +190,30 @@ function GastosDoMes({
 
       <Card className="mb-6">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-base font-semibold text-slate-900">Entradas</h2>
+          {origem !== null && (
+            <button type="button" onClick={() => navegar({ origem: null })} className="text-sm font-medium text-emerald-700 hover:underline">
+              Mostrar todas as origens
+            </button>
+          )}
+        </div>
+        {!r ? (
+          <EmptyState>Carregando…</EmptyState>
+        ) : r.receitas_por_origem.length === 0 ? (
+          <EmptyState>Nenhuma entrada neste mês.</EmptyState>
+        ) : (
+          <ResumoPorNome
+            tipo="receita"
+            dados={r.receitas_por_origem}
+            total={r.total_receitas_centavos}
+            selecionado={origem}
+            onSelecionar={(chave) => navegar({ origem: chave })}
+          />
+        )}
+      </Card>
+
+      <Card className="mb-6">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-base font-semibold text-slate-900">Saídas</h2>
           {destino !== null && (
             <button type="button" onClick={() => navegar({ destino: null })} className="text-sm font-medium text-emerald-700 hover:underline">
@@ -214,30 +239,6 @@ function GastosDoMes({
             {formatCentavos(r.fora_do_resumo_centavos)} em pagamentos de fatura não entram nos totais: os gastos do cartão
             já aparecem um a um quando você importa a fatura.
           </p>
-        )}
-      </Card>
-
-      <Card className="mb-6">
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-base font-semibold text-slate-900">Entradas</h2>
-          {origem !== null && (
-            <button type="button" onClick={() => navegar({ origem: null })} className="text-sm font-medium text-emerald-700 hover:underline">
-              Mostrar todas as origens
-            </button>
-          )}
-        </div>
-        {!r ? (
-          <EmptyState>Carregando…</EmptyState>
-        ) : r.receitas_por_origem.length === 0 ? (
-          <EmptyState>Nenhuma entrada neste mês.</EmptyState>
-        ) : (
-          <ResumoPorNome
-            tipo="receita"
-            dados={r.receitas_por_origem}
-            total={r.total_receitas_centavos}
-            selecionado={origem}
-            onSelecionar={(chave) => navegar({ origem: chave })}
-          />
         )}
       </Card>
 
@@ -303,16 +304,35 @@ function GastosDoMes({
             </table>
           </div>
         )}
-        {lista.data && lista.data.total > POR_PAGINA && (
-          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-600">
-            <span>
-              {pagina * POR_PAGINA + 1}–{Math.min((pagina + 1) * POR_PAGINA, lista.data.total)} de {lista.data.total}
-            </span>
+        {lista.data && lista.data.total > OPCOES_POR_PAGINA[0] && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 text-sm text-slate-600">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2">
+                Mostrar
+                <Select
+                  value={porPagina}
+                  onChange={(e) => {
+                    setPorPagina(Number(e.target.value));
+                    setPagina(0);
+                  }}
+                  className="w-20 py-1.5"
+                >
+                  {OPCOES_POR_PAGINA.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+              <span>
+                {pagina * porPagina + 1}–{Math.min((pagina + 1) * porPagina, lista.data.total)} de {lista.data.total}
+              </span>
+            </div>
             <div className="flex gap-2">
               <Button variant="secondary" disabled={pagina === 0} onClick={() => setPagina((p) => p - 1)}>
                 Anterior
               </Button>
-              <Button variant="secondary" disabled={(pagina + 1) * POR_PAGINA >= lista.data.total} onClick={() => setPagina((p) => p + 1)}>
+              <Button variant="secondary" disabled={(pagina + 1) * porPagina >= lista.data.total} onClick={() => setPagina((p) => p + 1)}>
                 Próxima
               </Button>
             </div>
