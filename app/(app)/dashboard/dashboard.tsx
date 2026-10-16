@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { ResumoPorNome } from "@/components/resumo-por-nome";
+import { ResumoPorNome, type Visao } from "@/components/resumo-por-nome";
 import { Button, Card, EmptyState, ErrorBox, PageHeader, Select } from "@/components/ui";
 import { api } from "@/lib/api-client";
 import { formatData } from "@/lib/dates";
@@ -65,6 +65,7 @@ function GastosDoMes({
   const pathname = usePathname();
   const [pagina, setPagina] = useState(0);
   const [porPagina, setPorPagina] = useState(OPCOES_POR_PAGINA[0]);
+  const [visao, setVisao] = useState<Visao>("grafico");
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   const { inicio, fim } = intervaloMes(mes);
 
@@ -171,14 +172,14 @@ function GastosDoMes({
       {/* KPIs: o gasto do mês é o número principal da tela */}
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Card>
+          <div className="text-sm text-slate-500">Entradas</div>
+          <div className="mt-1 text-2xl font-semibold text-slate-900">{r ? formatCentavos(r.total_receitas_centavos) : "—"}</div>
+        </Card>
+        <Card>
           <div className="text-sm text-slate-500">Gastos em {nomeMes(mes).toLowerCase()}</div>
           <div className="mt-1 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
             {r ? formatCentavos(r.total_despesas_centavos) : "—"}
           </div>
-        </Card>
-        <Card>
-          <div className="text-sm text-slate-500">Entradas</div>
-          <div className="mt-1 text-2xl font-semibold text-slate-900">{r ? formatCentavos(r.total_receitas_centavos) : "—"}</div>
         </Card>
         <Card>
           <div className="text-sm text-slate-500">Saldo do mês</div>
@@ -210,6 +211,8 @@ function GastosDoMes({
               total={r.total_receitas_centavos}
               selecionado={origem}
               onSelecionar={(chave) => navegar({ origem: chave })}
+              visao={visao}
+              onVisao={setVisao}
             />
           )}
         </Card>
@@ -234,6 +237,8 @@ function GastosDoMes({
               total={r.total_despesas_centavos}
               selecionado={destino}
               onSelecionar={(chave) => navegar({ destino: chave })}
+              visao={visao}
+              onVisao={setVisao}
             />
           )}
           {r && r.fora_do_resumo_centavos > 0 && (

@@ -34,15 +34,19 @@ const TEXTOS: Record<TipoTransacao, Textos & { coluna: string }> = {
   },
 };
 
-type Visao = "grafico" | "tabela";
+export type Visao = "grafico" | "tabela";
 
 /**
  * Valores do mês agrupados por nome (destino dos gastos ou origem das entradas),
  * do maior para o menor, em gráfico de barras ou em tabela. Clicar filtra os
- * lançamentos; o nome escolhido fica em destaque.
+ * lançamentos; o nome escolhido fica em destaque. A visão vem de fora para
+ * que entradas e saídas troquem juntas.
  */
-export function ResumoPorNome(props: Props) {
-  const [visao, setVisao] = useState<Visao>("grafico");
+export function ResumoPorNome({
+  visao,
+  onVisao,
+  ...props
+}: Props & { visao: Visao; onVisao: (visao: Visao) => void }) {
   return (
     <>
       <div role="group" aria-label="Visualização" className="mb-3 inline-flex rounded-lg bg-slate-100 p-0.5 text-sm">
@@ -51,7 +55,7 @@ export function ResumoPorNome(props: Props) {
             key={v}
             type="button"
             aria-pressed={visao === v}
-            onClick={() => setVisao(v)}
+            onClick={() => onVisao(v)}
             className={`rounded-md px-3 py-1 font-medium focus-visible:outline-2 focus-visible:outline-emerald-600 ${
               visao === v ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
             }`}
@@ -117,7 +121,7 @@ function Tabela({ tipo, dados, total, selecionado, onSelecionar }: Props) {
                   <td className="px-3 py-2 text-right text-slate-500 tabular-nums">{pct.toFixed(1).replace(".", ",")}%</td>
                   <td
                     className={`px-5 py-2 text-right font-medium whitespace-nowrap tabular-nums ${
-                      apagada ? "text-slate-400" : tipo === "receita" ? "text-emerald-700" : "text-slate-900"
+                      apagada ? "text-slate-400" : tipo === "receita" ? "text-emerald-700" : "text-red-600"
                     }`}
                   >
                     {formatCentavos(d.total_centavos)}
