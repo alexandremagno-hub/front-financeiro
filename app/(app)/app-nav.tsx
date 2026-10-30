@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/auth-context";
 
 const LINKS = [
   { href: "/dashboard", label: "Gastos do mês" },
+  { href: "/calendario", label: "Calendário" },
   { href: "/importar", label: "Importar extrato" },
 ];
 
