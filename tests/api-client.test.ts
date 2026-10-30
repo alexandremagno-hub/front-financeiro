@@ -51,6 +51,12 @@ describe("apiFetch", () => {
     expect(authHeader(calls[0])).toBe("Bearer velho");
   });
 
+  it("repete o parâmetro para listas e ignora vazios", async () => {
+    setup(() => json(200, {}));
+    await apiFetch("/resumo", { query: { mes: ["2026-03", "2026-01"], tipo: undefined, destino: "" } });
+    expect(calls[0].url).toBe("/api/resumo?mes=2026-03&mes=2026-01");
+  });
+
   it("em 401 faz refresh e repete a requisição original uma vez com o token novo", async () => {
     setup((url, init) => {
       if (url === "/api/auth/refresh") return json(200, { access_token: "novo", token_type: "bearer", expires_in: 900 });

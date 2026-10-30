@@ -108,7 +108,8 @@ export interface DestinoResumo {
 }
 
 export interface ResumoMes {
-  mes: string;
+  /** Meses somados (AAAA-MM), do mais recente ao mais antigo. */
+  meses: string[];
   total_despesas_centavos: number;
   total_receitas_centavos: number;
   saldo_centavos: number;

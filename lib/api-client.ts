@@ -46,7 +46,9 @@ export function configureApiClient(h: AuthHandlers): void {
   handlers = h;
 }
 
-type Query = Record<string, string | number | boolean | null | undefined>;
+type Valor = string | number | boolean | null | undefined;
+/** Lista vira parâmetro repetido: { mes: ["2026-01", "2026-03"] } -> ?mes=2026-01&mes=2026-03 */
+type Query = Record<string, Valor | Valor[]>;
 
 export interface RequestOptions {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
@@ -60,7 +62,9 @@ export interface RequestOptions {
 function buildUrl(path: string, query?: Query): string {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(query ?? {})) {
-    if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+    for (const item of Array.isArray(v) ? v : [v]) {
+      if (item !== undefined && item !== null && item !== "") qs.append(k, String(item));
+    }
   }
   const s = qs.toString();
   return `${API_BASE}${path}${s ? `?${s}` : ""}`;

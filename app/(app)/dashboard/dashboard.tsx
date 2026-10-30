@@ -5,10 +5,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { ResumoPorNome, type Visao } from "@/components/resumo-por-nome";
+import { type SelecaoMeses, SeletorMeses } from "@/components/seletor-meses";
 import { Button, Card, EmptyState, ErrorBox, PageHeader, Select } from "@/components/ui";
 import { api } from "@/lib/api-client";
 import { formatData } from "@/lib/dates";
-import { intervaloMes, nomeMes } from "@/lib/meses";
+import { nomeMes } from "@/lib/meses";
 import { formatCentavos } from "@/lib/money";
 import type { Categoria, Conta, ResumoMes, TransacaoPage } from "@/lib/types";
 import { errorMessage, useAsync } from "@/lib/use-async";
@@ -23,10 +24,22 @@ export function Dashboard() {
   if (meses.error) return <ErrorBox>{meses.error}</ErrorBox>;
   if (!meses.data?.length) return <SemDados />;
 
-  // Mês da URL (link "Ver gastos de…") ou, por padrão, o mais recente com dados.
-  const mesUrl = sp.get("mes");
-  const mes = mesUrl && /^\d{4}-\d{2}$/.test(mesUrl) ? mesUrl : meses.data[0];
-  return <GastosDoMes key={mes} mes={mes} meses={meses.data} destino={sp.get("destino")} origem={sp.get("origem")} />;
+  // Meses da URL (?mes=2026-01&mes=2026-03 ou ?mes=todos) ou, por padrão, o mais recente com dados.
+  const mesesUrl = sp.getAll("mes").filter((m) => m === "todos" || /^\d{4}-\d{2}$/.test(m));
+  const selecao: SelecaoMeses = mesesUrl.includes("todos")
+    ? "todos"
+    : mesesUrl.length
+      ? [...new Set(mesesUrl)].sort().reverse()
+      : [meses.data[0]];
+  return (
+    <GastosDoMes
+      key={selecao === "todos" ? "todos" : selecao.join(",")}
+      selecao={selecao}
+      meses={meses.data}
+      destino={sp.get("destino")}
+      origem={sp.get("origem")}
+    />
+  );
 }
 
 function SemDados() {
@@ -51,12 +64,12 @@ function SemDados() {
 }
 
 function GastosDoMes({
-  mes,
+  selecao,
   meses,
   destino,
   origem,
 }: {
-  mes: string;
+  selecao: SelecaoMeses;
   meses: string[];
   destino: string | null;
   origem: string | null;
@@ -67,9 +80,11 @@ function GastosDoMes({
   const [porPagina, setPorPagina] = useState(OPCOES_POR_PAGINA[0]);
   const [visao, setVisao] = useState<Visao>("grafico");
   const [erroAcao, setErroAcao] = useState<string | null>(null);
-  const { inicio, fim } = intervaloMes(mes);
+  const periodo = selecao === "todos" ? meses : selecao;
+  // Um mês só: mantém as setas e os textos "do mês"; vários viram "período".
+  const mes = selecao !== "todos" && selecao.length === 1 ? selecao[0] : null;
 
-  const resumo = useAsync((signal) => api.get<ResumoMes>("/resumo", { mes }, signal), [mes]);
+  const resumo = useAsync((signal) => api.get<ResumoMes>("/resumo", { mes: periodo }, signal), []);
   const refs = useAsync(
     async (signal) => {
       const [categorias, contas] = await Promise.all([
@@ -85,8 +100,7 @@ function GastosDoMes({
       api.get<TransacaoPage>(
         "/transacoes",
         {
-          data_inicio: inicio,
-          data_fim: fim,
+          mes: periodo,
           // Origem e destino usam a mesma chave; a origem só olha as entradas.
           destino: destino ?? origem ?? undefined,
           tipo: origem !== null ? "receita" : undefined,
@@ -95,13 +109,14 @@ function GastosDoMes({
         },
         signal,
       ),
-    [mes, destino, origem, pagina, porPagina],
+    [destino, origem, pagina, porPagina],
   );
 
   // Um filtro por vez: escolher um destino limpa a origem e vice-versa.
-  function navegar(params: { mes?: string; destino?: string | null; origem?: string | null }) {
+  function navegar(params: { selecao?: SelecaoMeses; destino?: string | null; origem?: string | null }) {
     const novo = new URLSearchParams();
-    novo.set("mes", params.mes ?? mes);
+    const sel = params.selecao ?? selecao;
+    for (const m of sel === "todos" ? ["todos"] : sel) novo.append("mes", m);
     const mudouFiltro = "destino" in params || "origem" in params;
     const dest = mudouFiltro ? params.destino : destino;
     const orig = mudouFiltro ? params.origem : origem;
@@ -122,7 +137,7 @@ function GastosDoMes({
     }
   }
 
-  const idx = meses.indexOf(mes);
+  const idx = mes ? meses.indexOf(mes) : -1;
   const anterior = idx >= 0 ? meses[idx + 1] : undefined; // lista vem do mais recente ao mais antigo
   const proximo = idx > 0 ? meses[idx - 1] : undefined;
   const categorias = [...(refs.data?.categorias ?? [])].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
@@ -139,28 +154,26 @@ function GastosDoMes({
   return (
     <>
       <PageHeader
-        title={`Gastos do mês de ${nomeMes(mes).split(" ")[0].toLowerCase()}`}
+        title={
+          mes
+            ? `Gastos do mês de ${nomeMes(mes).split(" ")[0].toLowerCase()}`
+            : selecao === "todos"
+              ? "Gastos de todos os meses"
+              : `Gastos de ${periodo.length} meses`
+        }
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="secondary" disabled={!anterior} onClick={() => anterior && navegar({ mes: anterior, destino: null, origem: null })} aria-label="Mês anterior">
-              ‹
-            </Button>
-            <Select
-              aria-label="Mês"
-              value={mes}
-              onChange={(e) => navegar({ mes: e.target.value, destino: null, origem: null })}
-              className="w-48"
-            >
-              {!meses.includes(mes) && <option value={mes}>{nomeMes(mes)}</option>}
-              {meses.map((m) => (
-                <option key={m} value={m}>
-                  {nomeMes(m)}
-                </option>
-              ))}
-            </Select>
-            <Button variant="secondary" disabled={!proximo} onClick={() => proximo && navegar({ mes: proximo, destino: null, origem: null })} aria-label="Próximo mês">
-              ›
-            </Button>
+            {mes && (
+              <Button variant="secondary" disabled={!anterior} onClick={() => anterior && navegar({ selecao: [anterior], destino: null, origem: null })} aria-label="Mês anterior">
+                ‹
+              </Button>
+            )}
+            <SeletorMeses meses={meses} selecao={selecao} onChange={(sel) => navegar({ selecao: sel, destino: null, origem: null })} />
+            {mes && (
+              <Button variant="secondary" disabled={!proximo} onClick={() => proximo && navegar({ selecao: [proximo], destino: null, origem: null })} aria-label="Próximo mês">
+                ›
+              </Button>
+            )}
           </div>
         }
       />
@@ -176,13 +189,13 @@ function GastosDoMes({
           <div className="mt-1 text-2xl font-semibold text-slate-900">{r ? formatCentavos(r.total_receitas_centavos) : "—"}</div>
         </Card>
         <Card>
-          <div className="text-sm text-slate-500">Gastos em {nomeMes(mes).toLowerCase()}</div>
+          <div className="text-sm text-slate-500">{mes ? `Gastos em ${nomeMes(mes).toLowerCase()}` : "Gastos no período"}</div>
           <div className="mt-1 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
             {r ? formatCentavos(r.total_despesas_centavos) : "—"}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-slate-500">Saldo do mês</div>
+          <div className="text-sm text-slate-500">{mes ? "Saldo do mês" : "Saldo do período"}</div>
           <div className={`mt-1 text-2xl font-semibold ${r && r.saldo_centavos < 0 ? "text-red-600" : "text-slate-900"}`}>
             {r ? formatCentavos(r.saldo_centavos) : "—"}
           </div>
@@ -203,7 +216,7 @@ function GastosDoMes({
           {!r ? (
             <EmptyState>Carregando…</EmptyState>
           ) : r.receitas_por_origem.length === 0 ? (
-            <EmptyState>Nenhuma entrada neste mês.</EmptyState>
+            <EmptyState>Nenhuma entrada {mes ? "neste mês" : "no período"}.</EmptyState>
           ) : (
             <ResumoPorNome
               tipo="receita"
@@ -229,7 +242,7 @@ function GastosDoMes({
           {!r ? (
             <EmptyState>Carregando…</EmptyState>
           ) : r.despesas_por_destino.length === 0 ? (
-            <EmptyState>Nenhum gasto neste mês.</EmptyState>
+            <EmptyState>Nenhum gasto {mes ? "neste mês" : "no período"}.</EmptyState>
           ) : (
             <ResumoPorNome
               tipo="despesa"

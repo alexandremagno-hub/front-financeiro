@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { semanasDoMes } from "@/lib/meses";
+import { rotuloMeses, semanasDoMes } from "@/lib/meses";
 
 describe("semanasDoMes", () => {
   it("começa no dia da semana certo e completa a última semana", () => {
@@ -15,5 +15,14 @@ describe("semanasDoMes", () => {
     const dias = semanasDoMes("2028-02").flat().filter(Boolean);
     expect(dias).toHaveLength(29);
     expect(dias.at(-1)).toBe("2028-02-29");
+  });
+});
+
+describe("rotuloMeses", () => {
+  it("descreve a seleção", () => {
+    expect(rotuloMeses(["2026-10"], false)).toBe("Outubro de 2026");
+    expect(rotuloMeses(["2026-03", "2025-12"], false)).toBe("dez/25 e mar/26");
+    expect(rotuloMeses(["2026-01", "2026-02", "2026-03", "2026-04"], false)).toBe("4 meses");
+    expect(rotuloMeses(["2026-01", "2026-02"], true)).toBe("Todos os meses");
   });
 });
