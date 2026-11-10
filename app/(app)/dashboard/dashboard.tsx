@@ -13,7 +13,7 @@ import { nomeMes } from "@/lib/meses";
 import { linhasAlinhadas } from "@/lib/resumo";
 import { formatCentavos } from "@/lib/money";
 import type { Categoria, Conta, ResumoMes, TransacaoPage } from "@/lib/types";
-import { errorMessage, useAsync } from "@/lib/use-async";
+import { useAsync } from "@/lib/use-async";
 
 const OPCOES_POR_PAGINA = [10, 20, 50, 100];
 
@@ -80,7 +80,6 @@ function GastosDoMes({
   const [pagina, setPagina] = useState(0);
   const [porPagina, setPorPagina] = useState(OPCOES_POR_PAGINA[0]);
   const [visao, setVisao] = useState<Visao>("grafico");
-  const [erroAcao, setErroAcao] = useState<string | null>(null);
   const periodo = selecao === "todos" ? meses : selecao;
   // Um mês só: mantém as setas e os textos "do mês"; vários viram "período".
   const mes = selecao !== "todos" && selecao.length === 1 ? selecao[0] : null;
@@ -127,22 +126,10 @@ function GastosDoMes({
     router.replace(`${pathname}?${novo.toString()}`, { scroll: false });
   }
 
-  async function recategorizar(transacaoId: number, novaCategoria: string) {
-    setErroAcao(null);
-    try {
-      await api.patch(`/transacoes/${transacaoId}`, { categoria_id: novaCategoria ? Number(novaCategoria) : null });
-      resumo.reload();
-      lista.reload();
-    } catch (e) {
-      setErroAcao(errorMessage(e));
-    }
-  }
-
   const idx = mes ? meses.indexOf(mes) : -1;
   const anterior = idx >= 0 ? meses[idx + 1] : undefined; // lista vem do mais recente ao mais antigo
   const proximo = idx > 0 ? meses[idx - 1] : undefined;
-  const categorias = [...(refs.data?.categorias ?? [])].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  const categoriaPorId = new Map(categorias.map((c) => [c.id, c]));
+  const categoriaPorId = new Map((refs.data?.categorias ?? []).map((c) => [c.id, c]));
   const contaPorId = new Map((refs.data?.contas ?? []).map((c) => [c.id, c]));
   const r = resumo.data;
   // Entradas e saídas mostram o mesmo número de linhas, para ficarem alinhadas.
@@ -184,7 +171,7 @@ function GastosDoMes({
       />
 
       <div className="mb-4">
-        <ErrorBox>{resumo.error || lista.error || refs.error || erroAcao}</ErrorBox>
+        <ErrorBox>{resumo.error || lista.error || refs.error}</ErrorBox>
       </div>
 
       {/* KPIs: o gasto do mês é o número principal da tela */}
@@ -277,7 +264,6 @@ function GastosDoMes({
           <h2 className="text-base font-semibold text-slate-900">
             Lançamentos{nomeFiltro ? ` · ${nomeFiltro}` : ""}
           </h2>
-          <span className="text-xs text-slate-500">Errou a categoria? Troque na lista e o resumo se ajusta.</span>
         </div>
         {lista.loading && !lista.data ? (
           <EmptyState>Carregando…</EmptyState>
@@ -301,20 +287,8 @@ function GastosDoMes({
                     <td className="px-4 py-2.5 whitespace-nowrap text-slate-600">{formatData(t.data_competencia)}</td>
                     <td className="px-4 py-2.5">{t.descricao || <span className="text-slate-400">—</span>}</td>
                     <td className="px-4 py-2.5 whitespace-nowrap text-slate-600">{contaPorId.get(t.conta_id)?.nome ?? "…"}</td>
-                    <td className="px-4 py-2">
-                      <Select
-                        aria-label={`Categoria de ${t.descricao}`}
-                        value={t.categoria_id ?? ""}
-                        onChange={(e) => recategorizar(t.id, e.target.value)}
-                        className="min-w-44 py-1.5 text-xs"
-                      >
-                        <option value="">Sem categoria</option>
-                        {categorias.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.nome}
-                          </option>
-                        ))}
-                      </Select>
+                    <td className="px-4 py-2.5 whitespace-nowrap text-slate-600">
+                      {categoriaPorId.get(t.categoria_id ?? -1)?.nome ?? <span className="text-slate-400">Sem categoria</span>}
                     </td>
                     <td
                       className={`px-4 py-2.5 text-right font-medium whitespace-nowrap tabular-nums ${
