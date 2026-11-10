@@ -329,7 +329,7 @@ function ResultadoCard({ resultado, onOutro }: { resultado: ResultadoImportacao;
           <Link
             key={m}
             href={`/dashboard?mes=${m}`}
-            className="rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            className="rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:hover:bg-emerald-800"
           >
             Ver gastos de {nomeMes(m)}
           </Link>

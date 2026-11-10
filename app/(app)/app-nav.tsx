@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -23,7 +24,7 @@ export function AppNav() {
   }
 
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="border-b border-slate-200 bg-surface">
       <div className="flex h-20 items-center gap-8 px-4 sm:px-6 lg:px-8">
         <Link href="/dashboard" className="text-2xl font-semibold tracking-tight text-emerald-700">
           Finanças
@@ -46,6 +47,7 @@ export function AppNav() {
         </nav>
         <div className="ml-auto flex items-center gap-3">
           <span className="hidden text-base text-slate-500 sm:inline">{user?.nome}</span>
+          <ThemeToggle />
           <Button variant="ghost" onClick={sair} className="text-base!">
             Sair
           </Button>

@@ -81,7 +81,7 @@ export function BarrasPorNome({ dados, total, selecionado, onSelecionar, textos 
                 // as barras vizinhas; no máximo cobre o valor desta, que ele repete.
                 <div
                   role="tooltip"
-                  className="pointer-events-none absolute top-1/2 right-1 z-10 flex -translate-y-1/2 items-center gap-2 rounded-md bg-white px-2.5 py-1 text-xs whitespace-nowrap shadow-md ring-1 ring-slate-200"
+                  className="pointer-events-none absolute top-1/2 right-1 z-10 flex -translate-y-1/2 items-center gap-2 rounded-md bg-surface px-2.5 py-1 text-xs whitespace-nowrap shadow-md ring-1 ring-slate-200"
                 >
                   <span className="inline-block h-0.5 w-3 rounded bg-emerald-600" aria-hidden />
                   <span className="text-sm font-semibold text-slate-900">{formatCentavos(d.total_centavos)}</span>

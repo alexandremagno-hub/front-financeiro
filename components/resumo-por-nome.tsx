@@ -57,7 +57,7 @@ export function ResumoPorNome({
             aria-pressed={visao === v}
             onClick={() => onVisao(v)}
             className={`rounded-md px-3 py-1 font-medium focus-visible:outline-2 focus-visible:outline-emerald-600 ${
-              visao === v ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+              visao === v ? "bg-surface text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             {v === "grafico" ? "Gráfico" : "Tabela"}
