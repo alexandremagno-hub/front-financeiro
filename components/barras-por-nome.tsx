@@ -11,6 +11,13 @@ interface Props {
   selecionado: string | null;
   onSelecionar: (chave: string | null) => void;
   textos: Textos;
+  /** Quantos nomes mostrar antes do "Mostrar todos". */
+  limite: number;
+  /**
+   * O outro lado tem o botão "Mostrar todos": sem ele aqui, mostra um aviso no
+   * lugar para os dois cartões terminarem na mesma altura.
+   */
+  reservarRodape: boolean;
 }
 
 export interface Textos {
@@ -19,11 +26,9 @@ export interface Textos {
   fracao: string;
   mostrarTodos: (n: number) => string;
   mostrarMaiores: string;
+  /** No lugar do "Mostrar todos" quando não há mais nomes. */
+  semMais: string;
 }
-
-// Muitos nomes pequenos (um Pix aqui, outro ali) viram cauda longa: mostra os
-// maiores e deixa o resto atrás de um botão.
-const VISIVEIS = 10;
 
 /**
  * Barras horizontais, uma por nome (destino de um gasto ou origem de uma entrada:
@@ -31,14 +36,16 @@ const VISIVEIS = 10;
  * Uma série só (magnitude): um único tom, sem legenda; o título da seção nomeia o
  * que está plotado. Valor no fim de cada barra; percentual e quantidade no tooltip
  * (hover ou foco do teclado). Clicar filtra a lista abaixo; o nome escolhido
- * fica em destaque e os demais em cinza.
+ * fica em destaque e os demais em cinza. Muitos nomes pequenos (um Pix aqui,
+ * outro ali) viram cauda longa: mostra os `limite` maiores e o resto fica atrás
+ * de um botão.
  */
-export function BarrasPorNome({ dados, total, selecionado, onSelecionar, textos }: Props) {
+export function BarrasPorNome({ dados, total, selecionado, onSelecionar, textos, limite, reservarRodape }: Props) {
   const [ativa, setAtiva] = useState<number | null>(null);
   const [todos, setTodos] = useState(false);
   const max = Math.max(...dados.map((d) => d.total_centavos), 1);
   // O nome filtrado continua visível mesmo fora dos maiores.
-  const corte = Math.max(VISIVEIS, dados.findIndex((d) => d.chave === selecionado) + 1);
+  const corte = Math.max(limite, dados.findIndex((d) => d.chave === selecionado) + 1);
   const visiveis = todos ? dados : dados.slice(0, corte);
 
   return (
@@ -94,7 +101,7 @@ export function BarrasPorNome({ dados, total, selecionado, onSelecionar, textos 
           );
         })}
       </ul>
-      {dados.length > VISIVEIS && (
+      {dados.length > limite ? (
         <button
           type="button"
           onClick={() => setTodos((t) => !t)}
@@ -102,6 +109,8 @@ export function BarrasPorNome({ dados, total, selecionado, onSelecionar, textos 
         >
           {todos ? textos.mostrarMaiores : textos.mostrarTodos(dados.length)}
         </button>
+      ) : (
+        reservarRodape && <p className="mt-2 px-2 text-sm text-slate-400">{textos.semMais}</p>
       )}
     </>
   );

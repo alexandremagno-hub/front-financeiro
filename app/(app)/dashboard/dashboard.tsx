@@ -10,6 +10,7 @@ import { Button, Card, EmptyState, ErrorBox, PageHeader, Select } from "@/compon
 import { api } from "@/lib/api-client";
 import { formatData } from "@/lib/dates";
 import { nomeMes } from "@/lib/meses";
+import { linhasAlinhadas } from "@/lib/resumo";
 import { formatCentavos } from "@/lib/money";
 import type { Categoria, Conta, ResumoMes, TransacaoPage } from "@/lib/types";
 import { errorMessage, useAsync } from "@/lib/use-async";
@@ -144,6 +145,10 @@ function GastosDoMes({
   const categoriaPorId = new Map(categorias.map((c) => [c.id, c]));
   const contaPorId = new Map((refs.data?.contas ?? []).map((c) => [c.id, c]));
   const r = resumo.data;
+  // Entradas e saídas mostram o mesmo número de linhas, para ficarem alinhadas.
+  const limite = r ? linhasAlinhadas(r.receitas_por_origem.length, r.despesas_por_destino.length) : 0;
+  // Se só um lado tem "Mostrar todos", o outro ganha um aviso no lugar e os dois terminam juntos.
+  const temMais = !!r && (r.receitas_por_origem.length > limite || r.despesas_por_destino.length > limite);
   const nomeFiltro =
     destino !== null
       ? r?.despesas_por_destino.find((d) => d.chave === destino)?.nome
@@ -226,6 +231,8 @@ function GastosDoMes({
               onSelecionar={(chave) => navegar({ origem: chave })}
               visao={visao}
               onVisao={setVisao}
+              limite={limite}
+              reservarRodape={temMais}
             />
           )}
         </Card>
@@ -252,6 +259,8 @@ function GastosDoMes({
               onSelecionar={(chave) => navegar({ destino: chave })}
               visao={visao}
               onVisao={setVisao}
+              limite={limite}
+              reservarRodape={temMais}
             />
           )}
           {r && r.fora_do_resumo_centavos > 0 && (

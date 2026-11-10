@@ -13,9 +13,11 @@ interface Props {
   total: number;
   selecionado: string | null;
   onSelecionar: (chave: string | null) => void;
+  /** Quantos nomes mostrar antes do "Mostrar todos"; igual nos dois lados para alinhar. */
+  limite: number;
+  /** O outro lado tem "Mostrar todos": mostra um aviso aqui para alinhar o fim. */
+  reservarRodape: boolean;
 }
-
-const VISIVEIS = 10;
 
 const TEXTOS: Record<TipoTransacao, Textos & { coluna: string }> = {
   despesa: {
@@ -24,6 +26,7 @@ const TEXTOS: Record<TipoTransacao, Textos & { coluna: string }> = {
     fracao: "dos gastos",
     mostrarTodos: (n) => `Mostrar todos os ${n} destinos`,
     mostrarMaiores: "Mostrar só os maiores",
+    semMais: "Não há mais destinos para mostrar",
   },
   receita: {
     lista: "Entradas por origem",
@@ -31,6 +34,7 @@ const TEXTOS: Record<TipoTransacao, Textos & { coluna: string }> = {
     fracao: "das entradas",
     mostrarTodos: (n) => `Mostrar todas as ${n} origens`,
     mostrarMaiores: "Mostrar só as maiores",
+    semMais: "Não há mais origens para mostrar",
   },
 };
 
@@ -71,6 +75,8 @@ export function ResumoPorNome({
           selecionado={props.selecionado}
           onSelecionar={props.onSelecionar}
           textos={TEXTOS[props.tipo]}
+          limite={props.limite}
+          reservarRodape={props.reservarRodape}
         />
       ) : (
         <Tabela {...props} />
@@ -79,11 +85,11 @@ export function ResumoPorNome({
   );
 }
 
-function Tabela({ tipo, dados, total, selecionado, onSelecionar }: Props) {
+function Tabela({ tipo, dados, total, selecionado, onSelecionar, limite, reservarRodape }: Props) {
   const textos = TEXTOS[tipo];
   const [todas, setTodas] = useState(false);
   // O nome filtrado continua visível mesmo fora dos maiores.
-  const corte = Math.max(VISIVEIS, dados.findIndex((d) => d.chave === selecionado) + 1);
+  const corte = Math.max(limite, dados.findIndex((d) => d.chave === selecionado) + 1);
   const visiveis = todas ? dados : dados.slice(0, corte);
 
   return (
@@ -132,7 +138,7 @@ function Tabela({ tipo, dados, total, selecionado, onSelecionar }: Props) {
           </tbody>
         </table>
       </div>
-      {dados.length > VISIVEIS && (
+      {dados.length > limite ? (
         <button
           type="button"
           onClick={() => setTodas((t) => !t)}
@@ -140,6 +146,8 @@ function Tabela({ tipo, dados, total, selecionado, onSelecionar }: Props) {
         >
           {todas ? textos.mostrarMaiores : textos.mostrarTodos(dados.length)}
         </button>
+      ) : (
+        reservarRodape && <p className="mt-2 text-sm text-slate-400">{textos.semMais}</p>
       )}
     </>
   );
